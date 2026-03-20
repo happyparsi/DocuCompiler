@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocuCompiler | Intelligent Summarization</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Auth Overlay -->
+    <div id="auth-overlay" class="auth-overlay hidden">
+        <div class="auth-box">
+            <h2 id="auth-title">Welcome Back</h2>
+            <p id="auth-subtitle">Log in to DocuCompiler to continue</p>
+            
+            <form id="auth-form">
+                <div class="input-group">
+                    <label for="auth-name">Username or Email</label>
+                    <input type="text" id="auth-name" required>
+                </div>
+                <div id="email-group" class="input-group hidden">
+                    <label for="auth-email">Email</label>
+                    <input type="email" id="auth-email">
+                </div>
+                <div class="input-group">
+                    <label for="auth-password">Password</label>
+                    <input type="password" id="auth-password" required>
+                </div>
+                <button type="submit" class="btn-primary" id="auth-submit">Log In</button>
+            </form>
+            <div class="auth-switch">
+                <span id="auth-switch-text">Don't have an account?</span> 
+                <a id="auth-switch-btn">Sign up</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Layout (ChatGPT Style) -->
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <button class="new-chat-btn" id="new-chat-btn">+ New Document / Chat</button>
+            <div class="history-list" id="history-list">
+                <!-- History items populated via JS -->
+            </div>
+            <div class="sidebar-footer">
+                <span id="user-display">Loading...</span>
+                <button class="logout-btn" id="logout-btn">Log out</button>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-area">
+            <div class="chat-history-container" id="chat-container">
+                <div class="empty-state" id="empty-state">
+                    <h1>DocuCompiler</h1>
+                    <p>Select a history session, or paste text, upload a document, and ask questions below.</p>
+                </div>
+                <!-- Chat bubbles populated via JS -->
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-area">
+                <form id="compile-form" class="input-container">
+                    <div class="row">
+                        <textarea id="chat-input" placeholder="Paste document content or ask a question... (Shift+Enter for newline)" rows="1"></textarea>
+                    </div>
+                    <div class="row control-row">
+                        <div class="file-input-wrapper">
+                            <div class="file-btn" id="file-indicator">📎 Attach File</div>
+                            <input type="file" id="file-upload-input" accept=".pdf,.docx,.txt">
+                        </div>
+                        <button type="submit" class="send-btn" id="send-btn">Send / Compile</button>
+                    </div>
+                    <div class="settings-row">
+                        <div class="options">
+                            <label for="strategy">Strategy:</label>
+                            <select id="strategy">
+                                <option value="conservative">Conservative</option>
+                                <option value="moderate" selected>Moderate</option>
+                                <option value="aggressive">Aggressive</option>
+                            </select>
+                            
+                            <label for="mode" style="margin-left: 1rem;">Format:</label>
+                            <select id="mode">
+                                <option value="paragraph" selected>Paragraph</option>
+                                <option value="bullet">Bullet</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

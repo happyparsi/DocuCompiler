@@ -1,0 +1,360 @@
+:root {
+    --primary-glow: #e2d1f9;
+    --secondary-glow: #d4e7f9;
+    --bg-color: #f7fafc;
+    --sidebar-bg: #ece9f6;
+    --sidebar-hover: #e0d9f0;
+    --sidebar-text: #4a5568;
+    --text-main: #2d3748;
+    --text-muted: #718096;
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --accent: #6b46c1;
+    --accent-hover: #553c9a;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text-main);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--bg-color), #fff);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Auth Modal Overlay */
+.auth-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255,255,255, 0.7);
+    backdrop-filter: blur(12px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.auth-box {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    padding: 3rem;
+    border-radius: 24px;
+    width: 400px;
+    box-shadow: 0 15px 50px rgba(107, 70, 193, 0.15);
+    text-align: center;
+}
+
+.auth-box h2 {
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #4a5568, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.auth-box p { color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; }
+
+.input-group {
+    margin-bottom: 1.25rem;
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.4rem;
+}
+
+.input-group input, .input-group textarea, .input-group select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    background: rgba(255, 255, 255, 0.9);
+    outline: none;
+    transition: all 0.2s;
+}
+
+.input-group input:focus, .input-group textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(107, 70, 193, 0.1);
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 0.85rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+.auth-switch {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+.auth-switch a { color: var(--accent); cursor: pointer; text-decoration: none; font-weight: 500;}
+
+/* App Layout */
+.app-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+.sidebar {
+    width: 280px;
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    border-right: 1px solid rgba(226, 232, 240, 0.8);
+    z-index: 10;
+}
+
+.new-chat-btn {
+    width: 100%;
+    padding: 0.85rem;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(107, 70, 193, 0.2);
+    border-radius: 12px;
+    text-align: left;
+    font-weight: 500;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 1.5rem;
+}
+.new-chat-btn:hover { background: rgba(255,255,255,0.9); }
+
+.history-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.history-item {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--sidebar-text);
+    transition: background 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.history-item:hover { background: var(--sidebar-hover); }
+.history-item.active { background: rgba(107, 70, 193, 0.1); color: var(--accent); font-weight: 500; }
+
+.delete-btn {
+    display: none;
+    background: transparent;
+    border: none;
+    color: #e53e3e;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.history-item:hover .delete-btn {
+    display: inline-block;
+}
+
+.sidebar-footer {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(226, 232, 240, 0.8);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.sidebar-footer span { font-weight: 600; color: var(--text-main); }
+.logout-btn { color: #e53e3e; cursor: pointer; border: none; background: transparent; font-weight: 500;}
+
+/* Main Chat Area */
+.chat-area {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background: radial-gradient(circle at 50% 10%, rgba(226, 209, 249, 0.4) 0%, transparent 60%),
+                radial-gradient(circle at 80% 80%, rgba(212, 231, 249, 0.4) 0%, transparent 60%);
+    position: relative;
+}
+
+.chat-history-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.empty-state {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+}
+
+.empty-state h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #4a5568, #1a202c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.empty-state p { font-size: 1.1rem; color: var(--text-muted); }
+
+/* Chat Bubbles */
+.chat-bubble {
+    max-width: 80%;
+    padding: 1.25rem 1.5rem;
+    border-radius: 16px;
+    font-size: 1rem;
+    line-height: 1.6;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+}
+
+.bubble-user {
+    align-self: flex-end;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    border-bottom-right-radius: 4px;
+}
+
+.bubble-assistant {
+    align-self: flex-start;
+    background: rgba(107, 70, 193, 0.05);
+    border: 1px solid rgba(107, 70, 193, 0.1);
+    color: var(--text-main);
+    border-bottom-left-radius: 4px;
+    white-space: pre-wrap;
+}
+
+/* Input Area (Bottom) */
+.input-area {
+    padding: 1.5rem 2rem;
+}
+
+.input-container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 1rem 1.5rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.control-row {
+    justify-content: space-between;
+}
+
+.input-container textarea {
+    width: 100%;
+    border: none;
+    background: transparent;
+    resize: none;
+    min-height: 48px;
+    max-height: 150px;
+    outline: none;
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 0.5rem 0;
+}
+
+.file-input-wrapper {
+    position: relative;
+    cursor: pointer;
+}
+.file-btn {
+    background: #edf2f7;
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.file-btn:hover { background: #e2e8f0; }
+#file-upload-input {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
+}
+
+.send-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+.send-btn:hover { background: var(--accent-hover); }
+
+.settings-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-start;
+    align-items: center;
+    border-top: 1px solid rgba(226, 232, 240, 0.5);
+    padding-top: 0.75rem;
+}
+.settings-row select {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+.settings-row label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 0;
+    margin-right: 0.5rem;
+}
