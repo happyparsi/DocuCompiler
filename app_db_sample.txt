@@ -1,0 +1,67 @@
+
+==================================================
+TABLE: users
+==================================================
+Schema:
+  - id (INTEGER)
+  - name (TEXT)
+  - email (TEXT)
+  - password_hash (TEXT)
+
+Sample Rows (Limit 5):
+   id            name                    email                                                     password_hash
+0   1  paras_rawal117  parasrawal117@gmail.com  7711e5574ab3386f1703a7f6e4f580e28e27588c761151f6dc878a8d94937032
+
+==================================================
+TABLE: sqlite_sequence
+==================================================
+Schema:
+  - name ()
+  - seq ()
+
+Sample Rows (Limit 5):
+       name  seq
+0     users    1
+1  sessions    1
+2   history    2
+
+==================================================
+TABLE: tokens
+==================================================
+Schema:
+  - token (TEXT)
+  - user_id (INTEGER)
+  - created_at (DATETIME)
+
+Sample Rows (Limit 5):
+                                         token  user_id                  created_at
+0  U8sSePNWB3qMWBBbx4d0N-EmPStF36H16adqCsBkKrQ        1  2026-03-20 11:13:25.320677
+1  ZQKUv6M_8sJUIVJRdGqbV99UT9k0LJxu83tW6qNKyRk        1  2026-03-20 11:17:29.039678
+
+==================================================
+TABLE: sessions
+==================================================
+Schema:
+  - id (INTEGER)
+  - user_id (INTEGER)
+  - title (TEXT)
+  - created_at (DATETIME)
+
+Sample Rows (Limit 5):
+   id  user_id                       title                  created_at
+0   1        1  what are the main keywords  2026-03-20 11:19:16.530377
+
+==================================================
+TABLE: history
+==================================================
+Schema:
+  - id (INTEGER)
+  - session_id (INTEGER)
+  - role (TEXT)
+  - content (TEXT)
+  - created_at (DATETIME)
+
+Sample Rows (Limit 5):
+   id  session_id       role                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         content                  created_at
+0   1           1       user                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  [File: diabetes_prediction_parasrawal.pdf] \nQuery: what are the main keywords  2026-03-20 11:19:16.536466
+1   2           1  assistant  - Diabetes Mellitus, Machine Learning, Ensemble Learning, Soft Voting, Logistic Regression, K-Nearest Neighbors, Random Forest, Diagnosis.\n- Model development Next comes, showing the best of all is the implementation of a random forest compared to other three models that followed in metrics evaluation to let us know the accuracy levels in which models performed whether on a training level or on the testing level as well by performing the ROC-AUC analysis gives us the confusion matrix with this it provides statistical insights regarding the age distribution Blood Glucose vs. HbA1c Levels and BMI [body mass index].\n- The implemented ensemble then comes into play and shows how successful probability averaging could be as a combination of different algorithms in the classification.\n- The findings here indicate there is a probable improvement in the prediction and detection of diabetes using machine learning models.\n\n**Q: what are the main keywords**\n**A:** The models include- Random Forest Classifier, K-Nearest Neighbours (KNN), and Logistic Regression  2026-03-20 11:19:16.537476
