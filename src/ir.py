@@ -1,37 +1,41 @@
-import sqlite3
-import json
-import numpy as np
-from typing import List, Dict, Optional
-import os
+import sqlite3 # Database file bnany kr lye
+import json # Json string convertor
+import numpy as np # arrays kelye
+from typing import List, Dict, Optional # Types
+import os 
 
 class SemanticIR:
     """
     Semantic Intermediate Representation (S-IR).
     Stores sentences, scores, embeddings, and metadata.
     """
+    # Is IR Database ka maskad Hy k NLP Phase k beech mein Server Crash hojaye to DB m sari progress mahfouz ho 
+    # Ya phr ChatHistory jab mangy Summary dubata tao pury ML steps dubara chlaney ki zerorrt Na prey!!! Speedup kely
+
     def __init__(self, db_path: str = "docucompiler.db"):
-        self.db_path = db_path
-        self._init_db()
+        self.db_path = db_path # DB file name
+        self._init_db() # Banate hi table tayar
 
     def _init_db(self):
+        # Database setup: Sqlite connect 
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         
-        # Sentences table
+        # 1. Sentences list jisme Har Line ko "Score" b mila huwa hy
         c.execute('''CREATE TABLE IF NOT EXISTS sentences
                      (id INTEGER PRIMARY KEY, 
-                      original_index INTEGER, 
+                      original_index INTEGER,  
                       text TEXT, 
                       score REAL)''')
         
-        # Embeddings table (stored as BLOB or JSON string - simplified for this prototype)
-        # Using JSON string for portability and simplicity without extra dependencies if possible
+        # 2. Vector table: Ye QA (Query/Sawalo) me Kaam aayenge dobara T5 model mein Fast FAISS Search kliye
+        # Embeddings ko BLOB format men rakhna chiyea, pero Simple Rakhny k liye unhe list sy JSON Text/String bnke rkha hy ID k sath foreign key m
         c.execute('''CREATE TABLE IF NOT EXISTS embeddings
                      (sentence_id INTEGER, 
                       vector TEXT,
                       FOREIGN KEY(sentence_id) REFERENCES sentences(id))''')
                       
-        # Metadata table
+        # 3. Extra info ki table k liye 
         c.execute('''CREATE TABLE IF NOT EXISTS metadata
                      (key TEXT PRIMARY KEY, value TEXT)''')
                      
@@ -40,8 +44,10 @@ class SemanticIR:
 
     def save(self, sentences: List[Dict[str, any]], scores: Dict[int, float], embeddings: np.ndarray):
         """Persist S-IR to SQLite."""
+        
+        # Clean start: Agar pehayl db tha tou abhi Naya bnaaynge Delete marker prototype ki asani krlye
         if os.path.exists(self.db_path):
-            os.remove(self.db_path) # Clean start for simplicity
+            os.remove(self.db_path) 
             self._init_db()
             
         conn = sqlite3.connect(self.db_path)
@@ -50,13 +56,15 @@ class SemanticIR:
         for i, sent in enumerate(sentences):
             idx = sent['index']
             text = sent['text']
-            score = scores.get(idx, 0.0) # Default to 0 if not ranked
+            
+            # Agar graph m wo sentence isolate tah to uska score 0 hoga! 
+            score = scores.get(idx, 0.0) 
             
             c.execute("INSERT INTO sentences (original_index, text, score) VALUES (?, ?, ?)",
                       (idx, text, score))
-            sent_db_id = c.lastrowid
+            sent_db_id = c.lastrowid # Foreign Key Relation Bnaneny k lie ID mgy gy DB se !
             
-            # Save embedding
+            # Embedding ko Json List me Badalna kion k Numpy Type sqllite me direclty NAHii ja sakti !!!
             vector_json = json.dumps(embeddings[i].tolist())
             c.execute("INSERT INTO embeddings (sentence_id, vector) VALUES (?, ?)",
                       (sent_db_id, vector_json))
@@ -66,6 +74,7 @@ class SemanticIR:
 
     def load(self):
         """Load S-IR from SQLite."""
+        # Agar Load karana par hy kabhi wapis? 
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         
@@ -74,28 +83,12 @@ class SemanticIR:
         rows = c.fetchall()
         
         for r in rows:
+             # Dict format ban k vapis wesa ho jaige Jsey chhora th !!
             sentences.append({
                 "index": r[0],
                 "text": r[1],
                 "score": r[2]
             })
-            
-        # Load embeddings if needed
-        # ... (omitted for brevity unless required by optimized search)
         
         conn.close()
         return sentences
-
-if __name__ == "__main__":
-    # Test
-    ir = SemanticIR("test_ir.db")
-    sents = [{"index": 0, "text": "Test sentence."}, {"index": 1, "text": "Another one."}]
-    scores = {0: 0.9, 1: 0.5}
-    embeddings = np.array([[0.1, 0.2], [0.3, 0.4]])
-    
-    ir.save(sents, scores, embeddings)
-    loaded = ir.load()
-    print("Loaded:", loaded)
-    
-    if os.path.exists("test_ir.db"):
-        os.remove("test_ir.db")

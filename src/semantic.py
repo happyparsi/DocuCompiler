@@ -1,13 +1,15 @@
-import networkx as nx
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
-from typing import List, Dict
-import numpy as np
+import networkx as nx # Complex Networks aur Graph Algortihm banane (Like PageRank) k liye
+from sentence_transformers import SentenceTransformer # AI Model jo Strings ko Vectors (Numbers) mein Convert krta hai
+from sklearn.metrics.pairwise import cosine_similarity # Do lines kitna apas mei Match (similar) keti hn? Yeh check krti hai lib
+from typing import List, Dict # Typehinting ki lie!
+import numpy as np # Fast Numbers processing (AI data Tensors hta h isliye Numpy Arrays laazmi ha Vector ko hold krne)
 
 class SemanticGraph:
     """Builds a semantic graph from sentences and computes importance scores."""
+    # Semantic matlab meaning. Sentence Graph matlb jese "Facebook Friends" hote hen jo jitna juri hoga wo "Importnt" Hoga PageRank me
 
     def __init__(self, model_name: str = 'all-MiniLM-L6-v2'):
+        # MiniLM bohut chota model hy jaldi CPU p kaam krta h.. Usay download kr k self.model me save rkh liya.
         self.model = SentenceTransformer(model_name)
 
     def build_graph(self, sentences: List[Dict[str, any]], similarity_threshold: float = 0.2) -> Dict[int, float]:
@@ -16,46 +18,44 @@ class SemanticGraph:
         Returns a dict mapping sentence index to importance score.
         """
         if not sentences:
-            return {}
+            return {} # Galtiyan control!
 
+        # List of Dictionary se sirf "text" wali keys ko bahir Nikaal liya.
         texts = [s['text'] for s in sentences]
-        # Encode sentences
+        
+        # Ye sabse slow step hoga! Hazaroo lines ko 384-Dimensions (384 Length array) me Numeric Encode Kardia.  -> embeddings variable me!
         embeddings = self.model.encode(texts)
         
-        # Compute cosine similarity matrix
+        # Ab Un lines k apas me 'Cosine Angle' Find karo (Maths wali Trick).
+        # Agar Lines similar hen to value 1 k kareeb hogi Warna 0. 
+        # Is se ek 2D Grid bnjyge.. matrix [Row][Column]  i,e.  Sent_1 vs Sent_2 => 0.83 Similarity
         sim_matrix = cosine_similarity(embeddings)
         
-        # Build graph
+        # Nodes aur Edges bnane ke liye "NetworkX" Graph start kiya Khali abhi..
         nx_graph = nx.Graph()
         
         num_sentences = len(sentences)
         for i in range(num_sentences):
+            # i = line number = Node graph me
             nx_graph.add_node(i)
+            
+            # Dusri loop usay aagay wale (i+1) sentences par chlegi. 
+            # Pechi wli lines Check keni zarurt ni h kiun ke [a vs b] hy tu  [b vs a] ka score same hota e Matrix m.
             for j in range(i + 1, num_sentences):
                 score = sim_matrix[i][j]
+                
+                # Kya do lineain aik doosre sy thora bhu ta'luq (Similarity) Rakhti hn?? Threshold = 0.2 (20%).
                 if score > similarity_threshold:
+                    # Agar Match hu gaya TO dono (i aur j) k darmyan aik pull (Edge) Bnaado.. Or is Dosti ki taqat (Weight) Set kr do 'score' wali
                     nx_graph.add_edge(i, j, weight=score)
         
-        # Compute PageRank
+        # ---GOOGLE KA SEARCH ENGINE ALGO -> PAGERANK ---
         try:
+            # Hum graph me PageRank dorah rye. Jo sentence Graph mein "SAB SE ZYADA" Doosre Importnt Sentenecs say Juda ho Gaaa...
+            # Us "Node" ka Score High hujai gA!! Matlab wo baat Pury documnt ka MAIn-IDEA (Summary center) hy!
             scores = nx.pagerank(nx_graph)
-        except nx.PowerIterationFailedConvergence:
-            # Fallback if convergence fails, though rare for undirected graphs
+        except nx.PowerIterationFailedConvergence: # Exception.. jb maths phat jay.. Failed to converged?
+            # Aisa bahut rare hy jab Sab Lines bilkul alag baat kri hn or Dosti No... Toh phr Sabko equal importance = 1/N Dedo chup krke. :) 
              scores = {i: 1.0/num_sentences for i in range(num_sentences)}
             
-        return scores, embeddings
-
-if __name__ == "__main__":
-    # Test (requires model download on first run)
-    sentences = [
-        {"text": "Artificial intelligence is a branch of computer science.", "index": 0},
-        {"text": "It involves creating agents that can reason.", "index": 1},
-        {"text": "Machine learning is a subset of AI.", "index": 2},
-        {"text": "Bananas are yellow.", "index": 3}  # Unrelated
-    ]
-    try:
-        sg = SemanticGraph()
-        scores, _ = sg.build_graph(sentences)
-        print("Scores:", scores)
-    except Exception as e:
-        print(f"Test failed: {e}")
+        return scores, embeddings # Top Sentences aur sath hi Vector wapis lauta diy.
