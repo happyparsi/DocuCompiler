@@ -51,7 +51,6 @@ class TXTExtractor(BaseExtractor):
                 with open(file_path, 'r', encoding='latin-1') as f:
                     return {"raw_text": f.read()}
             except Exception as e:
-                # Still kharb ha? Phir File nuks_zada hia !
                 raise ValueError(f"Failed to extract text from TXT: {e}")
         except Exception as e:
             raise ValueError(f"Failed to extract text from TXT: {e}")

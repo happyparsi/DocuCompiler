@@ -3,7 +3,7 @@ import re # Regular Expressions (Pattrens dhoondane ki Library)
 
 class StructuralParser:
     """Filters sentences based on structural rules."""
-    # Ye parser Lexical k baad chalta he .iska Kaam Text ke Content Shape (structure) ko test kena 
+    # Ye parser Lexical k baad chalta he .iska Kaam Text ke Content Shape (structure) ko test kerna hai
 
     def parse(self, sentences: List[Dict[str, any]]) -> List[Dict[str, any]]:
         """

@@ -1,99 +1,765 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DocuCompiler | Intelligent Summarization</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DocuCompiler | AI Document Intelligence</title>
+  <meta name="description" content="DocuCompiler — AI-powered document summarization and Q&A. Upload any PDF, DOCX, or text file and get instant insights." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- React + Babel CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Marked.js for markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-    <!-- login page -->
-    <div id="auth-overlay" class="auth-overlay hidden">
-        <div class="auth-box">
-            <h2 id="auth-title">Welcome Back</h2>
-            <p id="auth-subtitle">Log in to DocuCompiler to continue</p>
-            
-            <form id="auth-form">
-                <div class="input-group">
-                    <label for="auth-name">Username or Email</label>
-                    <input type="text" id="auth-name" required>
-                </div>
-                <div id="email-group" class="input-group hidden">
-                    <label for="auth-email">Email</label>
-                    <input type="email" id="auth-email">
-                </div>
-                <div class="input-group">
-                    <label for="auth-password">Password</label>
-                    <input type="password" id="auth-password" required>
-                </div>
-                <button type="submit" class="btn-primary" id="auth-submit">Log In</button>
-            </form>
-            <div class="auth-switch">
-                <span id="auth-switch-text">Don't have an account?</span> 
-                <a id="auth-switch-btn">Sign up</a>
-            </div>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // ── Theme Hook ──────────────────────────────────────────────────────────
+    function useTheme() {
+      const [theme, setTheme] = useState(() => localStorage.getItem('dc_theme') || 'system');
+
+      useEffect(() => {
+        localStorage.setItem('dc_theme', theme);
+        const root = document.documentElement;
+        if (theme === 'system') {
+          const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          root.setAttribute('data-theme', sysDark ? 'dark' : 'light');
+        } else {
+          root.setAttribute('data-theme', theme);
+        }
+      }, [theme]);
+
+      useEffect(() => {
+        if (theme !== 'system') return;
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleChange = (e) => {
+          document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+        };
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+      }, [theme]);
+
+      return [theme, setTheme];
+    }
+
+    // ── Markdown renderer component ──────────────────────────────────────────
+    function MarkdownContent({ content }) {
+      const html = React.useMemo(() => {
+        if (!content) return '';
+        marked.setOptions({ breaks: true, gfm: true });
+        return marked.parse(content);
+      }, [content]);
+      return <div className="markdown-body" dangerouslySetInnerHTML={{ __html: html }} />;
+    }
+
+    // ── Typing dots animation ────────────────────────────────────────────────
+    function TypingIndicator() {
+      return (
+        <div className="bubble assistant-bubble typing-bubble">
+          <div className="typing-dots">
+            <span /><span /><span />
+          </div>
         </div>
-    </div>
+      );
+    }
 
-    <!--isme actual interaction hora-->
-    <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <button class="new-chat-btn" id="new-chat-btn">+ New Document / Chat</button>
-            <div class="history-list" id="history-list">
-                <!-- History items populated via JS -->
+    // ── Single chat message ──────────────────────────────────────────────────
+    function ChatMessage({ role, content }) {
+      if (role === 'user') {
+        return (
+          <div className="bubble user-bubble">
+            <div className="bubble-avatar user-avatar">U</div>
+            <div className="bubble-content user-content">
+              <MarkdownContent content={content} />
             </div>
-            <div class="sidebar-footer">
-                <span id="user-display">Loading...</span>
-                <button class="logout-btn" id="logout-btn">Log out</button>
-            </div>
-        </aside>
+          </div>
+        );
+      }
+      return (
+        <div className="bubble assistant-bubble">
+          <div className="bubble-avatar ai-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div className="bubble-content assistant-content">
+            <MarkdownContent content={content} />
+          </div>
+        </div>
+      );
+    }
 
-        <!-- history,upload ka area -->
-        <main class="chat-area">
-            <div class="chat-history-container" id="chat-container">
-                <div class="empty-state" id="empty-state">
-                    <h1>DocuCompiler</h1>
-                    <p>Select a history session, or paste text, upload a document, and ask questions below.</p>
+    // ── Empty state / welcome screen ─────────────────────────────────────────
+    function EmptyState() {
+      return (
+        <div className="empty-state">
+          <div className="empty-logo">
+            <svg viewBox="0 0 64 64" fill="none">
+              <defs>
+                <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#a78bfa"/>
+                  <stop offset="100%" stopColor="#60a5fa"/>
+                </linearGradient>
+              </defs>
+              <rect width="64" height="64" rx="16" fill="url(#lg1)" opacity="0.15"/>
+              <path d="M20 16h24M20 24h16M20 32h20M20 40h12" stroke="url(#lg1)" strokeWidth="2.5" strokeLinecap="round"/>
+              <circle cx="46" cy="42" r="10" fill="url(#lg1)" opacity="0.9"/>
+              <path d="M43 42l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <h1 className="empty-title">DocuCompiler</h1>
+          <p className="empty-subtitle">AI-powered document intelligence</p>
+          <div className="feature-cards">
+            <div className="feature-card">
+              <span className="feature-icon">📄</span>
+              <strong>Upload Any Document</strong>
+              <p>PDF, DOCX, or plain text</p>
+            </div>
+            <div className="feature-card">
+              <span className="feature-icon">🧠</span>
+              <strong>Intelligent Summary</strong>
+              <p>NLP-powered key insights</p>
+            </div>
+            <div className="feature-card">
+              <span className="feature-icon">💬</span>
+              <strong>Chat with Your Doc</strong>
+              <p>Ask follow-up questions</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Auth Modal ───────────────────────────────────────────────────────────
+    function AuthModal({ onLogin }) {
+      const [mode, setMode] = useState('login');
+      const [name, setName] = useState('');
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
+      const [error, setError] = useState('');
+      const [loading, setLoading] = useState(false);
+
+      async function handleSubmit(e) {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+        const fd = new FormData();
+        fd.append('name', name);
+        fd.append('password', password);
+        try {
+          if (mode === 'signup') {
+            fd.append('email', email);
+            const res = await fetch('/api/signup', { method: 'POST', body: fd });
+            if (!res.ok) throw new Error((await res.json()).detail);
+            setMode('login');
+            setError('✅ Account created! Please log in.');
+          } else {
+            const res = await fetch('/api/login', { method: 'POST', body: fd });
+            if (!res.ok) throw new Error((await res.json()).detail);
+            const data = await res.json();
+            localStorage.setItem('dc_token', data.token);
+            onLogin(data.token, data.name);
+          }
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      return (
+        <div className="auth-overlay">
+          <div className="auth-card">
+            <div className="auth-logo">
+              <svg viewBox="0 0 40 40" fill="none" width="40" height="40">
+                <rect width="40" height="40" rx="10" fill="rgba(167,139,250,0.15)"/>
+                <path d="M12 10h16M12 16h10M12 22h13M12 28h8" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="28" cy="28" r="7" fill="#a78bfa" opacity="0.9"/>
+                <path d="M25.5 28l2 2 3.5-3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <h2 className="auth-heading">
+              {mode === 'login' ? 'Welcome back' : 'Create account'}
+            </h2>
+            <p className="auth-sub">
+              {mode === 'login'
+                ? 'Sign in to continue to DocuCompiler'
+                : 'Start analysing documents with AI'}
+            </p>
+
+            {error && (
+              <div className={`auth-msg ${error.startsWith('✅') ? 'auth-msg--ok' : 'auth-msg--err'}`}>
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="auth-form">
+              <div className="field-group">
+                <label htmlFor="auth-name">
+                  {mode === 'login' ? 'Username or Email' : 'Username'}
+                </label>
+                <input
+                  id="auth-name"
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder={mode === 'login' ? 'your_username' : 'choose_username'}
+                  required
+                  autoComplete="username"
+                />
+              </div>
+
+              {mode === 'signup' && (
+                <div className="field-group">
+                  <label htmlFor="auth-email">Email</label>
+                  <input
+                    id="auth-email"
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                    autoComplete="email"
+                  />
                 </div>
-                <!-- Chat bubbles populated via JS -->
+              )}
+
+              <div className="field-group">
+                <label htmlFor="auth-password">Password</label>
+                <input
+                  id="auth-password"
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                />
+              </div>
+
+              <button type="submit" className="btn-primary" disabled={loading} id="auth-submit-btn">
+                {loading
+                  ? <span className="btn-spinner" />
+                  : mode === 'login' ? 'Sign In' : 'Create Account'}
+              </button>
+            </form>
+
+            <p className="auth-toggle">
+              {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+              <button
+                className="link-btn"
+                id="auth-mode-toggle"
+                onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); }}
+              >
+                {mode === 'login' ? 'Sign up' : 'Sign in'}
+              </button>
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Sidebar history item ─────────────────────────────────────────────────
+    function HistoryItem({ session, isActive, onSelect, onDelete }) {
+      return (
+        <div
+          className={`history-item ${isActive ? 'history-item--active' : ''}`}
+          onClick={() => onSelect(session.id)}
+          id={`session-${session.id}`}
+        >
+          <span className="history-item__icon">💬</span>
+          <span className="history-item__title">{session.title}</span>
+          <button
+            className="history-item__del"
+            id={`del-session-${session.id}`}
+            onClick={e => { e.stopPropagation(); onDelete(session.id); }}
+            title="Delete session"
+          >
+            <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12">
+              <path d="M12 4l-8 8M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+      );
+    }
+
+    // ── Document context badge ───────────────────────────────────────────────
+    function DocBadge({ fileName }) {
+      if (!fileName) return null;
+      return (
+        <div className="doc-badge">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"/>
+          </svg>
+          <span>{fileName}</span>
+          <span className="doc-badge__label">Document loaded — ask follow-up questions!</span>
+        </div>
+      );
+    }
+
+    // ── Input bar ────────────────────────────────────────────────────────────
+    function InputBar({ onSubmit, loading, hasDocument, loadedFileName }) {
+      const [text, setText] = useState('');
+      const [file, setFile] = useState(null);
+      const [strategy, setStrategy] = useState('moderate');
+      const [mode, setMode] = useState('paragraph');
+      const [dragging, setDragging] = useState(false);
+      const textareaRef = useRef(null);
+      const fileInputRef = useRef(null);
+
+      // Auto-resize textarea
+      useEffect(() => {
+        const ta = textareaRef.current;
+        if (!ta) return;
+        ta.style.height = 'auto';
+        ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+      }, [text]);
+
+      function handleKeyDown(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleSend();
+        }
+      }
+
+      function handleFileChange(f) {
+        if (f && (f.name.endsWith('.pdf') || f.name.endsWith('.docx') || f.name.endsWith('.txt'))) {
+          setFile(f);
+        }
+      }
+
+      function handleSend() {
+        if (loading) return;
+        if (!text.trim() && !file) return;
+        onSubmit({ text: text.trim(), file, strategy, mode });
+        setText('');
+        setFile(null);
+        if (textareaRef.current) textareaRef.current.style.height = 'auto';
+      }
+
+      function handleDrop(e) {
+        e.preventDefault();
+        setDragging(false);
+        const f = e.dataTransfer.files[0];
+        if (f) handleFileChange(f);
+      }
+
+      const placeholder = hasDocument
+        ? `Ask a follow-up question about "${loadedFileName || 'the document'}"…`
+        : 'Paste text, or attach a PDF/DOCX and optionally ask a question… (Enter to send, Shift+Enter for newline)';
+
+      return (
+        <div className="input-area">
+          {hasDocument && <DocBadge fileName={loadedFileName} />}
+          <div
+            className={`input-card ${dragging ? 'input-card--drag' : ''}`}
+            onDragOver={e => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={handleDrop}
+          >
+            {/* Textarea */}
+            <textarea
+              ref={textareaRef}
+              id="chat-input"
+              className="input-textarea"
+              value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              rows={1}
+              disabled={loading}
+            />
+
+            {/* File chip */}
+            {file && (
+              <div className="file-chip">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd"/>
+                </svg>
+                <span>{file.name}</span>
+                <button onClick={() => setFile(null)} className="file-chip__remove">✕</button>
+              </div>
+            )}
+
+            {/* Bottom row */}
+            <div className="input-bottom-row">
+              <div className="input-controls-left">
+                {/* File attach */}
+                <button
+                  type="button"
+                  className="icon-btn"
+                  id="attach-btn"
+                  title="Attach PDF, DOCX, or TXT"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+                  </svg>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  id="file-upload-input"
+                  type="file"
+                  accept=".pdf,.docx,.txt"
+                  className="sr-only"
+                  onChange={e => handleFileChange(e.target.files[0])}
+                />
+
+                {/* Strategy */}
+                <div className="select-wrapper">
+                  <select id="strategy" value={strategy} onChange={e => setStrategy(e.target.value)} disabled={loading}>
+                    <option value="conservative">Conservative</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="aggressive">Aggressive</option>
+                  </select>
+                </div>
+
+                {/* Format */}
+                <div className="select-wrapper">
+                  <select id="mode" value={mode} onChange={e => setMode(e.target.value)} disabled={loading}>
+                    <option value="paragraph">Paragraph</option>
+                    <option value="bullet">Bullet Points</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Send button */}
+              <button
+                id="send-btn"
+                className="send-btn"
+                onClick={handleSend}
+                disabled={loading || (!text.trim() && !file)}
+              >
+                {loading ? (
+                  <span className="btn-spinner" />
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <p className="input-hint">
+            {hasDocument
+              ? '📎 To analyze a new document, click the paperclip and attach a file.'
+              : 'Supports PDF, DOCX, TXT · Enter to send · Drag & drop files'}
+          </p>
+        </div>
+      );
+    }
+
+    // ── Main App ─────────────────────────────────────────────────────────────
+    function App() {
+      const [token, setToken] = useState(() => localStorage.getItem('dc_token'));
+      const [userName, setUserName] = useState('');
+      const [sessions, setSessions] = useState([]);
+      const [currentSessionId, setCurrentSessionId] = useState(null);
+      const [messages, setMessages] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [loadedFileName, setLoadedFileName] = useState('');
+      const [sidebarOpen, setSidebarOpen] = useState(true);
+      const [theme, setTheme] = useTheme();
+      const chatEndRef = useRef(null);
+
+      function cycleTheme() {
+        if (theme === 'system') setTheme('light');
+        else if (theme === 'light') setTheme('dark');
+        else setTheme('system');
+      }
+
+      const authHeaders = useCallback(() => ({
+        Authorization: `Bearer ${token}`
+      }), [token]);
+
+      // Scroll to bottom on new messages
+      useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, [messages, loading]);
+
+      // On mount: verify token
+      useEffect(() => {
+        if (!token) return;
+        fetch('/api/me', { headers: authHeaders() })
+          .then(r => r.ok ? r.json() : Promise.reject())
+          .then(data => {
+            setUserName(data.name);
+            loadSessions();
+          })
+          .catch(() => {
+            localStorage.removeItem('dc_token');
+            setToken(null);
+          });
+      }, [token]);
+
+      async function loadSessions() {
+        try {
+          const res = await fetch('/api/sessions', { headers: authHeaders() });
+          const data = await res.json();
+          setSessions(data);
+        } catch (_) {}
+      }
+
+      async function selectSession(id) {
+        setCurrentSessionId(id);
+        setLoadedFileName('');
+        try {
+          // Load messages
+          const res = await fetch(`/api/sessions/${id}`, { headers: authHeaders() });
+          const history = await res.json();
+          setMessages(history);
+
+          // Check if session has a document
+          const docRes = await fetch(`/api/sessions/${id}/document`, { headers: authHeaders() });
+          if (docRes.ok) {
+            const docInfo = await docRes.json();
+            if (docInfo.has_document) setLoadedFileName(docInfo.file_name);
+          }
+        } catch (_) {}
+        // Mark active in sidebar
+        setSessions(prev => [...prev]);
+      }
+
+      async function deleteSession(id) {
+        await fetch(`/api/sessions/${id}`, { method: 'DELETE', headers: authHeaders() });
+        if (currentSessionId === id) {
+          setCurrentSessionId(null);
+          setMessages([]);
+          setLoadedFileName('');
+        }
+        loadSessions();
+      }
+
+      function newChat() {
+        setCurrentSessionId(null);
+        setMessages([]);
+        setLoadedFileName('');
+      }
+
+      function handleLogin(t, name) {
+        setToken(t);
+        setUserName(name);
+      }
+
+      function handleLogout() {
+        localStorage.removeItem('dc_token');
+        setToken(null);
+        setUserName('');
+        setSessions([]);
+        setMessages([]);
+        setCurrentSessionId(null);
+        setLoadedFileName('');
+      }
+
+      async function handleSubmit({ text, file, strategy, mode }) {
+        if (loading) return;
+
+        // Build user message display
+        let userDisplay = '';
+        if (file) userDisplay += `📄 **${file.name}**\n\n`;
+        if (text) userDisplay += text;
+        if (!file && !text) return;
+
+        setMessages(prev => [...prev, { role: 'user', content: userDisplay.trim() }]);
+        setLoading(true);
+
+        const fd = new FormData();
+        if (file) {
+          fd.append('file', file);
+          if (text) fd.append('query', text);
+        } else {
+          // No file — is it a follow-up Q&A or raw text?
+          if (loadedFileName && currentSessionId) {
+            fd.append('query', text);
+          } else {
+            fd.append('text', text);
+          }
+        }
+
+        fd.append('strategy', strategy);
+        fd.append('mode', mode);
+        if (currentSessionId) fd.append('session_id', String(currentSessionId));
+
+        try {
+          const res = await fetch('/api/summarize', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: fd
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || 'Server error');
+
+          // Build assistant reply
+          let reply = '';
+          if (data.summary && !loadedFileName) {
+            reply = data.summary;
+          }
+          if (data.answer && data.answer !== 'QA dependencies not installed.') {
+            if (reply) {
+              reply += `\n\n---\n\n### 💡 Answer\n\n${data.answer}`;
+            } else {
+              reply = `### 💡 Answer\n\n${data.answer}`;
+            }
+          } else if (!reply && data.summary) {
+            reply = data.summary;
+          }
+
+          setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+
+          // Update session state
+          if (!currentSessionId && data.session_id) {
+            setCurrentSessionId(data.session_id);
+          }
+          if (data.file_name) setLoadedFileName(data.file_name);
+          loadSessions();
+        } catch (err) {
+          setMessages(prev => [...prev, { role: 'assistant', content: `❌ **Error:** ${err.message}` }]);
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      const hasDocument = Boolean(loadedFileName);
+
+      if (!token) {
+        return <AuthModal onLogin={handleLogin} />;
+      }
+
+      return (
+        <div className="app">
+          {/* Sidebar toggle (mobile) */}
+          <button
+            className={`sidebar-toggle ${sidebarOpen ? 'sidebar-toggle--open' : ''}`}
+            id="sidebar-toggle"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label="Toggle sidebar"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+
+          {/* Sidebar */}
+          <aside className={`sidebar ${sidebarOpen ? 'sidebar--open' : ''}`}>
+            <div className="sidebar-header">
+              <div className="sidebar-brand">
+                <svg viewBox="0 0 32 32" fill="none" width="28" height="28">
+                  <rect width="32" height="32" rx="8" fill="rgba(167,139,250,0.2)"/>
+                  <path d="M9 9h14M9 14h9M9 19h11M9 24h7" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                <span>DocuCompiler</span>
+              </div>
+              <button id="new-chat-btn" className="new-chat-btn" onClick={newChat} title="New Chat">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                New Chat
+              </button>
             </div>
 
-            <!-- Input Area -->
-            <div class="input-area">
-                <form id="compile-form" class="input-container">
-                    <div class="row">
-                        <textarea id="chat-input" placeholder="Paste document content or ask a question... (Shift+Enter for newline)" rows="1"></textarea>
-                    </div>
-                    <div class="row control-row">
-                        <div class="file-input-wrapper">
-                            <div class="file-btn" id="file-indicator">📎 Attach File</div>
-                            <input type="file" id="file-upload-input" accept=".pdf,.docx,.txt">
-                        </div>
-                        <button type="submit" class="send-btn" id="send-btn">Send / Compile</button>
-                    </div>
-                    <div class="settings-row">
-                        <div class="options">
-                            <label for="strategy">Strategy:</label>
-                            <select id="strategy">
-                                <option value="conservative">Conservative</option>
-                                <option value="moderate" selected>Moderate</option>
-                                <option value="aggressive">Aggressive</option>
-                            </select>
-                            
-                            <label for="mode" style="margin-left: 1rem;">Format:</label>
-                            <select id="mode">
-                                <option value="paragraph" selected>Paragraph</option>
-                                <option value="bullet">Bullet</option>
-                            </select>
-                        </div>
-                    </div>
-                </form>
+            <div className="history-label">Recent Chats</div>
+            <div className="history-list" id="history-list">
+              {sessions.length === 0 && (
+                <p className="history-empty">No chats yet. Upload a document to start.</p>
+              )}
+              {sessions.map(s => (
+                <HistoryItem
+                  key={s.id}
+                  session={s}
+                  isActive={s.id === currentSessionId}
+                  onSelect={selectSession}
+                  onDelete={deleteSession}
+                />
+              ))}
             </div>
-        </main>
-    </div>
 
-    <script src="script.js"></script>
+            <div className="sidebar-footer">
+              <div className="sidebar-user">
+                <div className="sidebar-avatar">{userName ? userName[0].toUpperCase() : 'U'}</div>
+                <span id="user-display" className="sidebar-username">{userName}</span>
+              </div>
+              <div style={{display: 'flex', gap: '0.5rem'}}>
+                <button className="logout-btn" onClick={cycleTheme} title={`Theme: ${theme}`}>
+                  {theme === 'system' ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                      <line x1="8" y1="21" x2="16" y2="21"></line>
+                      <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                  ) : theme === 'light' ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                      <circle cx="12" cy="12" r="5"></circle>
+                      <line x1="12" y1="1" x2="12" y2="3"></line>
+                      <line x1="12" y1="21" x2="12" y2="23"></line>
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                      <line x1="1" y1="12" x2="3" y2="12"></line>
+                      <line x1="21" y1="12" x2="23" y2="12"></line>
+                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                  )}
+                </button>
+                <button id="logout-btn" className="logout-btn" onClick={handleLogout} title="Log out">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          {/* Main content */}
+          <main className="main">
+            {/* Chat history */}
+            <div className="chat-container" id="chat-container">
+              {messages.length === 0 ? (
+                <EmptyState />
+              ) : (
+                <>
+                  {messages.map((m, i) => (
+                    <ChatMessage key={i} role={m.role} content={m.content} />
+                  ))}
+                  {loading && <TypingIndicator />}
+                  <div ref={chatEndRef} />
+                </>
+              )}
+              {messages.length > 0 && !loading && <div ref={chatEndRef} />}
+            </div>
+
+            {/* Input */}
+            <InputBar
+              onSubmit={handleSubmit}
+              loading={loading}
+              hasDocument={hasDocument}
+              loadedFileName={loadedFileName}
+            />
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
 </body>
 </html>

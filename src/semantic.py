@@ -44,9 +44,9 @@ class SemanticGraph:
             for j in range(i + 1, num_sentences):
                 score = sim_matrix[i][j]
                 
-                # Kya do lineain aik doosre sy thora bhu ta'luq (Similarity) Rakhti hn?? Threshold = 0.2 (20%).
+                # Kya do lineain ek doosre sy thora bhu ta'luq (Similarity) Rakhti hn?? Threshold = 0.2 (20%).
                 if score > similarity_threshold:
-                    # Agar Match hu gaya TO dono (i aur j) k darmyan aik pull (Edge) Bnaado.. Or is Dosti ki taqat (Weight) Set kr do 'score' wali
+                    # Agar Match hu gaya TO dono (i aur j) k waqt ek pull (Edge) Bnaado.. Or is Dosti ki taqat (Weight) Set kr do 'score' wali
                     nx_graph.add_edge(i, j, weight=score)
         
         # ---GOOGLE KA SEARCH ENGINE ALGO -> PAGERANK ---
