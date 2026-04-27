@@ -24,8 +24,11 @@ from src.generator import TargetGenerator
 
 try:
     from src.query import QueryCompiler
+    print("Initializing global QA models...")
+    GLOBAL_QC = QueryCompiler()
 except ImportError:
     QueryCompiler = None
+    GLOBAL_QC = None
 
 DB_PATH = "docucompiler.db"
 
@@ -286,10 +289,9 @@ async def summarize(
 
             file_name = stored_file_name or "Document"
 
-            if QueryCompiler:
-                qc = QueryCompiler()
-                qc.build_index(stored_sentences, stored_embeddings)
-                answer = qc.answer(query)
+            if GLOBAL_QC:
+                GLOBAL_QC.build_index(stored_sentences, stored_embeddings)
+                answer = GLOBAL_QC.answer(query)
                 response_data["answer"] = answer
                 response_data["summary"] = stored_summary or ""
                 final_answer = answer
@@ -348,10 +350,9 @@ async def summarize(
             final_answer = summary
 
             # Run Q&A if query provided
-            if query and query.strip() and QueryCompiler:
-                qc = QueryCompiler()
-                qc.build_index(validated_sentences, embeddings)
-                answer = qc.answer(query)
+            if query and query.strip() and GLOBAL_QC:
+                GLOBAL_QC.build_index(validated_sentences, embeddings)
+                answer = GLOBAL_QC.answer(query)
                 response_data["answer"] = answer
                 final_answer += f"\n\n---\n\n**Your Question:** {query}\n\n**Answer:** {answer}"
             elif query and query.strip():

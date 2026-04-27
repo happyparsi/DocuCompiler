@@ -59,7 +59,7 @@ class QueryCompiler:
                 results.append(self.sentences[idx]['text'])
         return results
 
-    def answer(self, query: str, k: int = 7) -> str:
+    def answer(self, query: str, k: int = 15) -> str:
         """
         Generates a structured markdown answer using retrieved context.
         Uses beam search (num_beams=4) and longer max_length (512) for quality.
@@ -69,16 +69,17 @@ class QueryCompiler:
 
         # Trim context to avoid exceeding T5's token limit (~512 tokens input)
         # Rough heuristic: 4 chars ≈ 1 token
-        max_context_chars = 1500
+        max_context_chars = 2500
         if len(context) > max_context_chars:
             context = context[:max_context_chars]
 
         # Structured prompt for Flan-T5
         input_text = (
-            f"Answer the following question in as much detail as possible, using only the provided context.\n\n"
-            f"Question: {query}\n\n"
+            f"Please answer the following question based ONLY on the provided context. "
+            f"Provide a clear, detailed, and complete sentence. If the context does not contain the answer, say 'I cannot find the answer in the provided document.'\n\n"
             f"Context: {context}\n\n"
-            f"Detailed Answer:"
+            f"Question: {query}\n\n"
+            f"Answer:"
         )
 
         inputs = self.tokenizer(
@@ -91,13 +92,10 @@ class QueryCompiler:
         with torch.no_grad():
             outputs = self.model.generate(
                 inputs.input_ids,
-                max_length=512,          # Much longer answers than before
-                num_beams=5,             # Increased beam search for better quality
+                max_length=512,
+                num_beams=4,
                 early_stopping=True,
-                no_repeat_ngram_size=3,  # Avoid repetitive phrases
-                length_penalty=2.0,      # Higher length penalty to strongly encourage longer, more detailed answers
-                temperature=0.7,         # Add slight temperature for better text flow
-                do_sample=True           # Enable sampling to use temperature
+                length_penalty=1.0
             )
 
         raw_answer = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
